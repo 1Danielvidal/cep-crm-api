@@ -14,19 +14,19 @@ router.get('/', async (req, res) => {
         let pParams = [];
 
         if (fechaInicio) {
-            sConditions.push(`s.fecha_creacion >= ?`);
-            pConditions.push(`fecha_creacion >= ?`);
+            sConditions.push(`s.fecha_creacion >= $${sParams.length + 1}`);
+            pConditions.push(`fecha_creacion >= $${pParams.length + 1}`);
             sParams.push(fechaInicio);
             pParams.push(fechaInicio);
         }
         if (fechaFin) {
-            sConditions.push(`s.fecha_creacion <= ?`);
-            pConditions.push(`fecha_creacion <= ?`);
+            sConditions.push(`s.fecha_creacion <= $${sParams.length + 1}`);
+            pConditions.push(`fecha_creacion <= $${pParams.length + 1}`);
             sParams.push(fechaFin);
             pParams.push(fechaFin);
         }
         if (ministerioId) {
-            sConditions.push(`s.ministerio_responsable_id = ?`);
+            sConditions.push(`s.ministerio_responsable_id = $${sParams.length + 1}`);
             sParams.push(ministerioId);
         }
 

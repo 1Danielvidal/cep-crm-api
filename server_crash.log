@@ -1,0 +1,20 @@
+[dotenv@17.3.1] injecting env (0) from .env -- tip: 🛡️ auth for agents: https://vestauth.com
+CRM Pastor API escuchando en el puerto 5555
+Error CRÍTICO al iniciar servidor: Error: listen EPERM: operation not permitted 0.0.0.0:5555
+    at Server.setupListenHandle [as _listen2] (node:net:1926:21)
+    at listenInCluster (node:net:2005:12)
+    at Server.listen (node:net:2110:7)
+    at app.listen (/Users/danielvidal/.gemini/antigravity/playground/cep-crm/backend/node_modules/express/lib/application.js:605:24)
+    at Object.<anonymous> (/Users/danielvidal/.gemini/antigravity/playground/cep-crm/backend/server.js:20:5)
+    at Module._compile (node:internal/modules/cjs/loader:1812:14)
+    at Object..js (node:internal/modules/cjs/loader:1943:10)
+    at Module.load (node:internal/modules/cjs/loader:1533:32)
+    at Module._load (node:internal/modules/cjs/loader:1335:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19) {
+  code: 'EPERM',
+  errno: -1,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 5555
+}
+Conectado a la base de datos SQLite local.

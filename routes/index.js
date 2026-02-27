@@ -20,10 +20,16 @@ router.get('/stats/dashboard', async (req, res) => {
     const db = require('../db');
     try {
         const total = await db.query(`SELECT COUNT(*) as count FROM SOLICITUD_PASTORAL`);
-        const pendientesHoy = await db.query(`SELECT COUNT(*) as count FROM SOLICITUD_PASTORAL WHERE estado IN ('PENDIENTE','EN_PROCESO') AND date(fecha_limite_contacto) = date('now')`);
-        const pendientesSemana = await db.query(`SELECT COUNT(*) as count FROM SOLICITUD_PASTORAL WHERE estado IN ('PENDIENTE','EN_PROCESO') AND fecha_limite_contacto >= date('now') AND fecha_limite_contacto <= date('now','+7 days')`);
+
+        // Consultas adaptadas para ser compatibles con PostgreSQL
+        const pendientesHoy = await db.query(`SELECT COUNT(*) as count FROM SOLICITUD_PASTORAL WHERE estado IN ('PENDIENTE','EN_PROCESO') AND CAST(fecha_limite_contacto AS DATE) = CURRENT_DATE`);
+
+        const pendientesSemana = await db.query(`SELECT COUNT(*) as count FROM SOLICITUD_PASTORAL WHERE estado IN ('PENDIENTE','EN_PROCESO') AND fecha_limite_contacto >= CURRENT_DATE AND fecha_limite_contacto <= CURRENT_DATE + INTERVAL '7 days'`);
+
         const totalAtendidas = await db.query(`SELECT COUNT(*) as count FROM SOLICITUD_PASTORAL WHERE estado = 'ATENDIDA'`);
-        const nuevasVisitas = await db.query(`SELECT COUNT(*) as count FROM PERSONA WHERE tipo_persona = 'VISITA' AND fecha_creacion >= date('now','-30 days')`);
+
+        const nuevasVisitas = await db.query(`SELECT COUNT(*) as count FROM PERSONA WHERE tipo_persona = 'VISITA' AND fecha_creacion >= CURRENT_TIMESTAMP - INTERVAL '30 days'`);
+
         const enDiscipulado = await db.query(`SELECT COUNT(*) as count FROM PERSONA WHERE estado_espiritual = 'EN_DISCIPULADO'`);
 
         res.json({

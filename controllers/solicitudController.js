@@ -26,17 +26,22 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
     const { persona_id, tipo_solicitud, origen, descripcion_breve, prioridad, estado, fecha_limite_contacto, asignado_a_usuario_id, ministerio_responsable_id, notas_confidenciales } = req.body;
     const id = crypto.randomUUID();
+
+    // Normalizar fecha para PostgreSQL
+    const f_limite = fecha_limite_contacto && fecha_limite_contacto.trim() !== "" ? fecha_limite_contacto : null;
+    const u_asignado = asignado_a_usuario_id && asignado_a_usuario_id.trim() !== "" ? asignado_a_usuario_id : null;
+    const m_responsable = ministerio_responsable_id && ministerio_responsable_id.trim() !== "" ? ministerio_responsable_id : null;
+
     try {
         await db.query(
             `INSERT INTO SOLICITUD_PASTORAL 
             (id, persona_id, tipo_solicitud, origen, descripcion_breve, prioridad, estado, fecha_limite_contacto, asignado_a_usuario_id, ministerio_responsable_id, notas_confidenciales) 
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-            [id, persona_id, tipo_solicitud, origen, descripcion_breve, prioridad, estado || 'PENDIENTE', fecha_limite_contacto, asignado_a_usuario_id, ministerio_responsable_id, notas_confidenciales]
+            [id, persona_id, tipo_solicitud, origen, descripcion_breve, prioridad, estado || 'PENDIENTE', f_limite, u_asignado, m_responsable, notas_confidenciales]
         );
-        // SQLite no soporta RETURNING — devolvemos el objeto explícitamente
         res.status(201).json({ id, persona_id, tipo_solicitud, estado: estado || 'PENDIENTE', prioridad });
     } catch (err) {
-        console.error(err);
+        console.error('Error SQL Solicitud:', err.message);
         res.status(500).json({ error: 'Error al crear solicitud', details: err.message });
     }
 });

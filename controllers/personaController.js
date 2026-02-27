@@ -9,13 +9,8 @@ router.get('/', async (req, res) => {
         const result = await db.query('SELECT * FROM PERSONA ORDER BY fecha_creacion DESC');
         res.json(result.rows);
     } catch (err) {
-        // Fallback si fecha_creacion no existe (usamos id default ordering temporalmente)
-        try {
-            const fallback = await db.query('SELECT * FROM PERSONA ORDER BY nombres ASC');
-            res.json(fallback.rows);
-        } catch (e) {
-            res.status(500).json({ error: 'Error del servidor' });
-        }
+        console.error('Error al obtener personas:', err.message);
+        res.status(500).json({ error: 'Error del servidor' });
     }
 });
 
@@ -36,17 +31,20 @@ router.post('/', async (req, res) => {
     const { tipo_persona, nombres, apellidos, sexo, fecha_nacimiento, telefono_principal, telefono_secundario, email, direccion, barrio_ciudad, estado_espiritual, invita_por, fecha_primera_visita, notas_generales } = req.body;
     const id = crypto.randomUUID();
 
+    // Normalizar fechas vacías para PostgreSQL
+    const f_nac = fecha_nacimiento && fecha_nacimiento.trim() !== "" ? fecha_nacimiento : null;
+    const f_visita = fecha_primera_visita && fecha_primera_visita.trim() !== "" ? fecha_primera_visita : null;
+
     try {
         await db.query(
             `INSERT INTO PERSONA 
-            (id, tipo_persona, nombres, apellidos, sexo, fecha_nacimiento, telefono_principal, telefono_secundario, email, direccion, barrio_ciudad, estado_espiritual, invita_por, fecha_primera_visita, notas_generales) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
-            [id, tipo_persona, nombres, apellidos, sexo, fecha_nacimiento, telefono_principal, telefono_secundario, email, direccion, barrio_ciudad, estado_espiritual, invita_por, fecha_primera_visita, notas_generales]
+            (id, tipo_persona, nombres, apellidos, sexo, fecha_nacimiento, telefono_principal, telefono_secundario, email, direccion, barrio_ciudad, estado_espiritual, invita_por, fecha_primera_visita, notas_generales, fecha_creacion) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, CURRENT_TIMESTAMP)`,
+            [id, tipo_persona, nombres, apellidos, sexo, f_nac, telefono_principal, telefono_secundario, email, direccion, barrio_ciudad, estado_espiritual, invita_por, f_visita, notas_generales]
         );
-        // SQLite no soporta RETURNING — devolvemos el objeto con el ID que generamos
         res.status(201).json({ id, tipo_persona, nombres, apellidos, telefono_principal, email, estado_espiritual });
     } catch (err) {
-        console.error(err);
+        console.error('Error SQL Persona:', err.message);
         res.status(500).json({ error: 'Error al crear persona', details: err.message });
     }
 });
