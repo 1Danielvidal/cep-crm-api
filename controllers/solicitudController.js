@@ -8,7 +8,7 @@ router.get('/', async (req, res) => {
     try {
         const query = `
             SELECT s.*, p.nombres, p.apellidos, 
-            COALESCE(u.nombre_completo, s.asignado_a_usuario_id) as asignado_a_nombre, 
+            COALESCE(u.nombre_completo, CAST(s.asignado_a_usuario_id AS TEXT)) as asignado_a_nombre, 
             m.nombre as ministerio_nombre
             FROM SOLICITUD_PASTORAL s
             JOIN PERSONA p ON s.persona_id = p.id
@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
         const result = await db.query(query);
         res.json(result.rows);
     } catch (err) {
-        console.error(err);
+        console.error("Error SQL Listado:", err.message);
         res.status(500).json({ error: 'Error del servidor' });
     }
 });
@@ -42,7 +42,7 @@ router.post('/', async (req, res) => {
         );
         res.status(201).json({ id, persona_id, tipo_solicitud, estado: estado || 'PENDIENTE', prioridad });
     } catch (err) {
-        console.error('Error SQL:', err.message);
+        console.error('Error SQL Registro:', err.message);
         res.status(500).json({ error: 'Error al crear solicitud', details: err.message });
     }
 });
