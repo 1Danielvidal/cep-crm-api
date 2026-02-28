@@ -7,7 +7,9 @@ const crypto = require('crypto');
 router.get('/', async (req, res) => {
     try {
         const query = `
-            SELECT s.*, p.nombres, p.apellidos, u.nombre_completo as asignado_a_nombre, m.nombre as ministerio_nombre
+            SELECT s.*, p.nombres, p.apellidos, 
+            COALESCE(u.nombre_completo, s.asignado_a_usuario_id) as asignado_a_nombre, 
+            m.nombre as ministerio_nombre
             FROM SOLICITUD_PASTORAL s
             JOIN PERSONA p ON s.persona_id = p.id
             LEFT JOIN USUARIO u ON s.asignado_a_usuario_id = u.id
@@ -28,7 +30,21 @@ router.post('/', async (req, res) => {
     const id = crypto.randomUUID();
 
     const f_limite = fecha_limite_contacto && fecha_limite_contacto.trim() !== "" ? fecha_limite_contacto : null;
-    const u_asignado = asignado_a_usuario_id && asignado_a_usuario_id.trim() !== "" ? asignado_a_usuario_id : null;
+    
+    // Si asignado_a_usuario_id contiene un nombre y no un ID, lo manejamos
+    let u_asignado = null;
+    let notas_adicionales = notas_confidenciales || '';
+
+    if (asignado_a_usuario_id && asignado_a_usuario_id.trim() !== "") {
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(asignado_a_usuario_id);
+        if (isUUID) {
+            u_asignado = asignado_a_usuario_id;
+        } else {
+            // Guardamos el nombre directamente para que no se pierda nada
+            u_asignado = asignado_a_usuario_id; 
+        }
+    }
+
     const m_responsable = ministerio_responsable_id && ministerio_responsable_id.trim() !== "" ? ministerio_responsable_id : null;
 
     try {
@@ -36,10 +52,11 @@ router.post('/', async (req, res) => {
             `INSERT INTO SOLICITUD_PASTORAL 
             (id, persona_id, tipo_solicitud, origen, descripcion_breve, prioridad, estado, fecha_limite_contacto, asignado_a_usuario_id, ministerio_responsable_id, notas_confidenciales) 
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-            [id, persona_id, tipo_solicitud, origen, descripcion_breve, prioridad, estado || 'PENDIENTE', f_limite, u_asignado, m_responsable, notas_confidenciales]
+            [id, persona_id, tipo_solicitud, origen, descripcion_breve, prioridad, estado || 'PENDIENTE', f_limite, u_asignado, m_responsable, notas_adicionales]
         );
         res.status(201).json({ id, persona_id, tipo_solicitud, estado: estado || 'PENDIENTE', prioridad });
     } catch (err) {
+        console.error('Error SQL:', err.message);
         res.status(500).json({ error: 'Error al crear solicitud', details: err.message });
     }
 });
@@ -70,14 +87,13 @@ router.patch('/:id', async (req, res) => {
     }
 });
 
-// ELIMINAR SOLICITUD (¡Esta es la que falta!)
+// Eliminar solicitud
 router.delete('/:id', async (req, res) => {
     const { id } = req.params;
     try {
         await db.query('DELETE FROM SOLICITUD_PASTORAL WHERE id = $1', [id]);
         res.status(204).send();
     } catch (err) {
-        console.error(err);
         res.status(500).json({ error: 'Error al eliminar la solicitud' });
     }
 });
