@@ -30,21 +30,7 @@ router.post('/', async (req, res) => {
     const id = crypto.randomUUID();
 
     const f_limite = fecha_limite_contacto && fecha_limite_contacto.trim() !== "" ? fecha_limite_contacto : null;
-    
-    // Si asignado_a_usuario_id contiene un nombre y no un ID, lo manejamos
-    let u_asignado = null;
-    let notas_adicionales = notas_confidenciales || '';
-
-    if (asignado_a_usuario_id && asignado_a_usuario_id.trim() !== "") {
-        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(asignado_a_usuario_id);
-        if (isUUID) {
-            u_asignado = asignado_a_usuario_id;
-        } else {
-            // Guardamos el nombre directamente para que no se pierda nada
-            u_asignado = asignado_a_usuario_id; 
-        }
-    }
-
+    const u_asignado = asignado_a_usuario_id && asignado_a_usuario_id.trim() !== "" ? asignado_a_usuario_id : null;
     const m_responsable = ministerio_responsable_id && ministerio_responsable_id.trim() !== "" ? ministerio_responsable_id : null;
 
     try {
@@ -52,7 +38,7 @@ router.post('/', async (req, res) => {
             `INSERT INTO SOLICITUD_PASTORAL 
             (id, persona_id, tipo_solicitud, origen, descripcion_breve, prioridad, estado, fecha_limite_contacto, asignado_a_usuario_id, ministerio_responsable_id, notas_confidenciales) 
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-            [id, persona_id, tipo_solicitud, origen, descripcion_breve, prioridad, estado || 'PENDIENTE', f_limite, u_asignado, m_responsable, notas_adicionales]
+            [id, persona_id, tipo_solicitud, origen, descripcion_breve, prioridad, estado || 'PENDIENTE', f_limite, u_asignado, m_responsable, notas_confidenciales]
         );
         res.status(201).json({ id, persona_id, tipo_solicitud, estado: estado || 'PENDIENTE', prioridad });
     } catch (err) {
