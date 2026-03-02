@@ -34,22 +34,25 @@ router.get('/', async (req, res) => {
         const pWhere = pConditions.length ? `WHERE ${pConditions.join(' AND ')}` : '';
 
         // 1. Solicitudes por Tipo
-        const distTipo = await db.query(
+        const distTipoRes = await db.query(
             `SELECT tipo_solicitud as nombre, COUNT(*) as valor FROM SOLICITUD_PASTORAL s ${sWhere} GROUP BY tipo_solicitud`,
             sParams
         );
+        const distTipo = distTipoRes.rows.map(r => ({ ...r, valor: parseInt(r.valor || 0) }));
 
         // 2. Solicitudes por Estado
-        const distEstado = await db.query(
+        const distEstadoRes = await db.query(
             `SELECT estado as nombre, COUNT(*) as valor FROM SOLICITUD_PASTORAL s ${sWhere} GROUP BY estado`,
             sParams
         );
+        const distEstado = distEstadoRes.rows.map(r => ({ ...r, valor: parseInt(r.valor || 0) }));
 
         // 3. Personas por Estado Espiritual
-        const distEspiritual = await db.query(
+        const distEspiritualRes = await db.query(
             `SELECT estado_espiritual as nombre, COUNT(*) as valor FROM PERSONA ${pWhere} GROUP BY estado_espiritual`,
             pParams
         );
+        const distEspiritual = distEspiritualRes.rows.map(r => ({ ...r, valor: parseInt(r.valor || 0) }));
 
         // 4. Cumplimiento de Seguimiento
         const cumplimientoQuery = await db.query(`
@@ -74,7 +77,7 @@ router.get('/', async (req, res) => {
         // 5. Carga por Ministerio/Usuario
         const porUsuarioConditions = sConditions.map(c => c.replace('s.', 'sp.'));
         const porUsuarioWhere = porUsuarioConditions.length ? `AND ${porUsuarioConditions.join(' AND ')}` : '';
-        const porUsuario = await db.query(`
+        const porUsuarioRes = await db.query(`
             SELECT 
                 u.nombre_completo as usuario,
                 m.nombre as ministerio,
@@ -89,17 +92,61 @@ router.get('/', async (req, res) => {
             ORDER BY m.nombre, u.nombre_completo
         `, sParams);
 
+        const porUsuario = porUsuarioRes.rows.map(r => ({
+            ...r,
+            total_asignadas: parseInt(r.total_asignadas || 0),
+            pendientes: parseInt(r.pendientes || 0),
+            atendidas: parseInt(r.atendidas || 0)
+        }));
+
         res.json({
-            distribucionTipo: distTipo.rows,
-            distribucionEstado: distEstado.rows,
-            distribucionEspiritual: distEspiritual.rows,
+            distribucionTipo: distTipo,
+            distribucionEstado: distEstado,
+            distribucionEspiritual: distEspiritual,
             cumplimiento: cumplimiento,
-            cargaPorUsuario: porUsuario.rows
+            cargaPorUsuario: porUsuario
         });
 
     } catch (e) {
         console.error('Error reportes:', e.message);
         res.status(500).json({ error: 'Error agregando reportes', details: e.message });
+    }
+});
+
+// Obtener listado completo para exportación (Excel/CSV)
+router.get('/completo', async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                s.fecha_creacion,
+                p.nombres,
+                p.apellidos,
+                p.telefono_principal as telefono,
+                p.email,
+                p.direccion,
+                p.barrio_ciudad,
+                p.estado_espiritual,
+                s.tipo_solicitud,
+                s.origen,
+                s.descripcion_breve as descripcion,
+                s.prioridad,
+                s.estado,
+                s.fecha_limite_contacto,
+                s.fecha_cierre,
+                COALESCE(u.nombre_completo, CAST(s.asignado_a_usuario_id AS TEXT)) as asignado_a,
+                m.nombre as ministerio_responsable,
+                s.notas_confidenciales
+            FROM SOLICITUD_PASTORAL s
+            JOIN PERSONA p ON s.persona_id = p.id
+            LEFT JOIN USUARIO u ON s.asignado_a_usuario_id = u.id
+            LEFT JOIN MINISTERIO m ON s.ministerio_responsable_id = m.id
+            ORDER BY s.fecha_creacion DESC
+        `;
+        const result = await db.query(query);
+        res.json(result.rows);
+    } catch (e) {
+        console.error('Error reporte completo:', e.message);
+        res.status(500).json({ error: 'Error obteniendo reporte completo' });
     }
 });
 
