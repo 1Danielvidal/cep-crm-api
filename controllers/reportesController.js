@@ -1,9 +1,8 @@
-/* COPIA ESTE CÓDIGO PARA EL BACKEND */
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
-// Obtener datos agregados para reportes
+// Ruta principal de gráficos
 router.get('/', async (req, res) => {
     try {
         const { fechaInicio, fechaFin, ministerioId } = req.query;
@@ -62,7 +61,7 @@ router.get('/', async (req, res) => {
     } catch (e) { res.status(500).json({ error: 'Error reportes' }); }
 });
 
-// NUEVA RUTA: SÁBANA DE DATOS COMPLETA
+// ESTA ES LA RUTA DE LOS DATOS COMPLETOS (SÁBANA)
 router.get('/completo', async (req, res) => {
     try {
         const query = `
