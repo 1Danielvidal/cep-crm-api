@@ -58,7 +58,9 @@ router.get('/', async (req, res) => {
             cumplimiento,
             cargaPorUsuario: porUsuarioRes.rows.map(r => ({ ...r, total_asignadas: parseInt(r.total_asignadas || 0), pendientes: parseInt(r.pendientes || 0), atendidas: parseInt(r.atendidas || 0) }))
         });
-    } catch (e) { res.status(500).json({ error: 'Error reportes' }); }
+    } catch (e) {
+        res.status(500).json({ error: 'Error reportes' }); 
+    }
 });
 
 // ESTA ES LA RUTA DE LOS DATOS COMPLETOS (SÁBANA)
@@ -81,7 +83,9 @@ router.get('/completo', async (req, res) => {
         `;
         const result = await db.query(query);
         res.json(result.rows);
-    } catch (e) { res.status(500).json({ error: 'Error reporte completo' }); }
+    } catch (e) { 
+        res.status(500).json({ error: 'Error reporte completo' }); 
+    }
 });
 
 module.exports = router;
