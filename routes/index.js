@@ -19,18 +19,18 @@ router.use('/reportes', reportesController);
 router.get('/stats/dashboard', async (req, res) => {
     const db = require('../db');
     try {
-        // Calcular fechas en JavaScript
+        // Calcular fechas en JavaScript y guardar solo YYYY-MM-DD para compatibilidad estricta
         const hoy = new Date();
-        const startOfTodayStr = hoy.toISOString().split('T')[0] + ' 00:00:00';
-        const endOfTodayStr = hoy.toISOString().split('T')[0] + ' 23:59:59';
+        const startOfTodayStr = hoy.toISOString().split('T')[0];
+        const endOfTodayStr = hoy.toISOString().split('T')[0];
 
         const nextWeek = new Date();
         nextWeek.setDate(hoy.getDate() + 7);
-        const endOfNextWeekStr = nextWeek.toISOString().split('T')[0] + ' 23:59:59';
+        const endOfNextWeekStr = nextWeek.toISOString().split('T')[0];
 
         const last30Days = new Date();
         last30Days.setDate(hoy.getDate() - 30);
-        const startOfLast30DaysStr = last30Days.toISOString().split('T')[0] + ' 00:00:00';
+        const startOfLast30DaysStr = last30Days.toISOString().split('T')[0];
 
         // TOTAL
         const total = await db.query(`SELECT COUNT(*) as count FROM SOLICITUD_PASTORAL`);
@@ -39,16 +39,16 @@ router.get('/stats/dashboard', async (req, res) => {
         const pendientesHoy = await db.query(`
             SELECT COUNT(*) as count FROM SOLICITUD_PASTORAL 
             WHERE estado IN ('PENDIENTE','EN_PROCESO') 
-            AND fecha_limite_contacto >= $1 
-            AND fecha_limite_contacto <= $2
+            AND substr(CAST(fecha_limite_contacto AS TEXT), 1, 10) >= $1 
+            AND substr(CAST(fecha_limite_contacto AS TEXT), 1, 10) <= $2
         `, [startOfTodayStr, endOfTodayStr]);
 
         // PENDIENTES SEMANA (Desde hoy hasta 7 días)
         const pendientesSemana = await db.query(`
             SELECT COUNT(*) as count FROM SOLICITUD_PASTORAL 
             WHERE estado IN ('PENDIENTE','EN_PROCESO') 
-            AND fecha_limite_contacto >= $1 
-            AND fecha_limite_contacto <= $2
+            AND substr(CAST(fecha_limite_contacto AS TEXT), 1, 10) >= $1 
+            AND substr(CAST(fecha_limite_contacto AS TEXT), 1, 10) <= $2
         `, [startOfTodayStr, endOfNextWeekStr]);
 
         // ATENDIDAS (HISTÓRICO)
@@ -58,7 +58,7 @@ router.get('/stats/dashboard', async (req, res) => {
         const nuevasVisitas = await db.query(`
             SELECT COUNT(*) as count FROM PERSONA 
             WHERE tipo_persona = 'VISITA' 
-            AND fecha_primera_visita >= $1
+            AND substr(CAST(fecha_primera_visita AS TEXT), 1, 10) >= $1
         `, [startOfLast30DaysStr]);
 
         // PERSONAS EN DISCIPULADO
